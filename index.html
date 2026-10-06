@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1b1230">
+  <title>Urban Run</title>
+  <link rel="icon" href="TemplateData/favicon.ico">
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #1b1230; overflow: hidden; overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none; }
+    #unity-container { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #1b1230; }
+    #unity-canvas { background: #1b1230; display: block; }
+    #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #fff; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: radial-gradient(ellipse at 50% 30%, #3b2360 0%, #1b1230 70%); z-index: 10; }
+    #loading h1 { margin: 0; font-size: 44px; letter-spacing: 2px; font-style: italic; font-weight: 900; background: linear-gradient(90deg, #ffb347, #ff4e8a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    #bar { width: min(70vw, 320px); height: 12px; border-radius: 6px; background: rgba(255,255,255,0.15); overflow: hidden; }
+    #fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ffb347, #ff4e8a); transition: width .2s; }
+    #pct { font-size: 15px; opacity: .8; }
+    #tip { font-size: 13px; opacity: .6; max-width: 80vw; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="unity-container"><canvas id="unity-canvas" tabindex="-1"></canvas></div>
+  <div id="loading">
+    <h1>URBAN RUN</h1>
+    <div id="bar"><div id="fill"></div></div>
+    <div id="pct">Cargando… 0%</div>
+    <div id="tip">PC: flechas o A/D para cambiar de carril, ↑/espacio salta, ↓ se agacha · Móvil: desliza</div>
+  </div>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    var canvas = document.querySelector("#unity-canvas");
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) { try { tg.ready(); tg.expand(); if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); if (tg.setHeaderColor) tg.setHeaderColor("#1b1230"); } catch (e) {} }
+
+    // el juego es vertical: en móvil llena la pantalla; en PC se centra una columna 9:16
+    function fit() {
+      var w = window.innerWidth, h = window.innerHeight;
+      var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || w < h;
+      var cw, ch;
+      if (mobile) { cw = w; ch = h; }
+      else { ch = h; cw = Math.min(w, Math.round(h * 9 / 16)); }
+      canvas.style.width = cw + "px"; canvas.style.height = ch + "px";
+    }
+    window.addEventListener("resize", fit); fit();
+
+    var config = {
+      arguments: [],
+      dataUrl: "Build/UrbanRun_WebGL.data.unityweb",
+      frameworkUrl: "Build/UrbanRun_WebGL.framework.js.unityweb",
+      codeUrl: "Build/UrbanRun_WebGL.wasm.unityweb",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "DefaultCompany",
+      productName: "Urban Run",
+      productVersion: "0.1.0",
+      // en móvil se renderiza a menos resolución que la pantalla (más fluido); en PC a la nativa
+      devicePixelRatio: (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? Math.min(window.devicePixelRatio || 1, 1.5) : (window.devicePixelRatio || 1)),
+    };
+
+    var script = document.createElement("script");
+    script.src = "Build/UrbanRun_WebGL.loader.js";
+    script.onload = function () {
+      createUnityInstance(canvas, config, function (p) {
+        var pct = Math.round(p * 100);
+        document.querySelector("#fill").style.width = pct + "%";
+        document.querySelector("#pct").textContent = "Cargando… " + pct + "%";
+      }).then(function (instance) {
+        document.querySelector("#loading").style.display = "none";
+        canvas.focus();
+      }).catch(function (m) { document.querySelector("#pct").textContent = "Error: " + m; });
+    };
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>
